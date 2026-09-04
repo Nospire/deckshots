@@ -81,7 +81,7 @@ async def upload(
 
     row = store.find_dup(dev["name"], sha)
     if row:
-        if row["status"] == "sent" or worker.inbox_path(row["id"], filename).exists():
+        if row["status"] == "sent" or worker.inbox_path(row["id"], row["filename"]).exists():
             return {"id": row["id"], "status": row["status"], "dup": True}
         store.delete_shot(row["id"])   # stale record without a file: receive again
 

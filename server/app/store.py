@@ -81,7 +81,7 @@ def connect():
 # ----------------------------------------------------------------------------- shots
 def find_dup(device: str, sha: str):
     with connect() as con:
-        return con.execute("SELECT id, status FROM shots WHERE device=? AND sha256=?", (device, sha)).fetchone()
+        return con.execute("SELECT id, status, filename FROM shots WHERE device=? AND sha256=?", (device, sha)).fetchone()
 
 
 def delete_shot(shot_id: str):
