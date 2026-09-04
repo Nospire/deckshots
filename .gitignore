@@ -1,0 +1,8 @@
+server/config.yml
+server/.env
+server/pkg/
+server/data/
+server/bot-api-data/
+__pycache__/
+*.pyc
+.DS_Store

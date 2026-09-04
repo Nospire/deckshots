@@ -1,0 +1,41 @@
+# DeckShots server. Copy config.example.yml -> config.yml and .env.example -> .env first.
+#
+# Two ways to talk to Telegram:
+#   1) bundled local Bot API server (profile "local-api"): files up to 2 GB, zero-copy sends.
+#      docker compose --profile local-api up -d --build
+#   2) api.telegram.org directly: set api_url: https://api.telegram.org in config.yml (50 MB video limit).
+#      docker compose up -d --build
+services:
+  deckshots:
+    build: .
+    image: deckshots:latest
+    container_name: deckshots
+    restart: unless-stopped
+    env_file: .env                      # BOT_TOKEN, optional COMMAND_BOT_TOKEN
+    environment:
+      - TZ=${TZ:-UTC}
+      - DECKSHOTS_CONFIG=/config/config.yml
+      - DECKSHOTS_DATA=/data
+    volumes:
+      - ${DATA_DIR:-./data}:/data          # inbox / work / db  (bot-api must see the same path when local_files is on)
+      - ./config.yml:/config/config.yml:ro
+      - ../agent:/app/agent:ro
+      - ./pkg:/app/pkg:ro
+    ports:
+      - "${PORT:-8790}:8790"
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  telegram-bot-api:
+    image: aiogram/telegram-bot-api:latest
+    container_name: deckshots-bot-api
+    restart: unless-stopped
+    profiles: ["local-api"]
+    environment:
+      - TELEGRAM_API_ID=${TELEGRAM_API_ID}
+      - TELEGRAM_API_HASH=${TELEGRAM_API_HASH}
+      - TELEGRAM_LOCAL=1
+    volumes:
+      - ./bot-api-data:/var/lib/telegram-bot-api
+      - ${DATA_DIR:-./data}:/data:ro

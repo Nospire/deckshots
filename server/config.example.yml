@@ -1,0 +1,39 @@
+# DeckShots server config. Restart the container after editing: docker compose restart deckshots
+
+# --- Telegram -------------------------------------------------------------------------------
+# Local Bot API server (bundled, profile local-api) => 2 GB videos, zero-copy sends.
+api_url: http://telegram-bot-api:8081
+# Or the public API (50 MB limit, files are uploaded):
+# api_url: https://api.telegram.org
+# local_files: false
+
+# --- Delivery -------------------------------------------------------------------------------
+path_prefix: /shots            # URL prefix (reverse-proxy location); the agent uses <public_url>=<host><prefix>
+public_url: https://example.com/shots   # what the installers put into the deck config
+max_part_mb: 1900              # clips above this are split with stream copy (1/2, 2/2 ...); use 49 with api.telegram.org
+screenshot_as: photo           # photo | document (document keeps the original jpg untouched)
+album_wait_seconds: 45         # screenshots of one game arriving within this window go as one album
+album_max: 10                  # 1 disables albums
+workers_fast: 2                # screenshots / Steam clips / mp4 recordings
+workers_slow: 1                # recordings that need transcoding (webm, mkv)
+transcode_preset: veryfast     # libx264 preset for transcoding
+steam_store_lookup: true       # resolve Steam appids without a name via the Store API
+retry_max_seconds: 600
+language: ru                   # ru | en (captions, bot replies)
+
+admin_chat_id: 123456789       # gets a copy of every "deck connected" notice and the /all admin view in the bot
+dl_key: change-me-random       # secret path segment: <public_url>/dl/<dl_key>/DeckShots-<name>.tar.gz
+
+# --- Devices --------------------------------------------------------------------------------
+# One entry per Steam Deck. token = what the deck sends in X-Device-Token (generate: openssl rand -hex 16).
+# chat_id = where this deck's shots go (user id, group id or channel id); thread_id optional (forum topic).
+devices:
+  - name: deck-alice
+    label: "Alice's Deck"
+    token: 0123456789abcdef0123456789abcdef
+    chat_id: 123456789
+  - name: deck-bob
+    label: "Bob's OLED"
+    token: fedcba9876543210fedcba9876543210
+    chat_id: 987654321
+    # thread_id: 42
