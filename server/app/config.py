@@ -17,6 +17,10 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN") or CFG.get("bot_token")
 if not BOT_TOKEN:
     raise SystemExit("BOT_TOKEN is required (env or config.yml)")
 COMMAND_BOT_TOKEN = os.environ.get("COMMAND_BOT_TOKEN") or CFG.get("command_bot_token") or ""
+# With a bot of your own, one token serves both delivery and commands. Set to false when the delivery bot's
+# updates are consumed by another service (webhook/polling) and use COMMAND_BOT_TOKEN for a second bot instead.
+COMMANDS_ON_MAIN = bool(CFG.get("commands_on_main_bot", True))
+COMMANDS_TOKEN = COMMAND_BOT_TOKEN or (BOT_TOKEN if COMMANDS_ON_MAIN else "")
 
 API = CFG.get("api_url", "http://telegram-bot-api:8081").rstrip("/")
 LOCAL_FILES = bool(CFG.get("local_files", "telegram.org" not in API))

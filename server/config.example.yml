@@ -21,6 +21,7 @@ steam_store_lookup: true       # resolve Steam appids without a name via the Sto
 retry_max_seconds: 600
 language: ru                   # ru | en (captions, bot replies)
 
+commands_on_main_bot: true     # /status, /stats, pause buttons on the delivery bot; false => only COMMAND_BOT_TOKEN
 admin_chat_id: 123456789       # gets a copy of every "deck connected" notice and the /all admin view in the bot
 dl_key: change-me-random       # secret path segment: <public_url>/dl/<dl_key>/DeckShots-<name>.tar.gz
 

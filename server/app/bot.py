@@ -1,7 +1,7 @@
 """Command bot (optional): /status, /stats, pause/resume with colored inline buttons.
 
-Runs only when COMMAND_BOT_TOKEN is set. It must be a *separate* bot from the one used by another
-service with webhooks/polling, otherwise getUpdates conflicts. Users are recognised by chat_id from
+Runs on the delivery bot by default (commands_on_main_bot: true). If that bot's updates are consumed by
+another service (webhook/polling), set it to false and give a second bot via COMMAND_BOT_TOKEN. Users are recognised by chat_id from
 config.yml (devices) — nobody else gets anything.
 """
 import asyncio
@@ -181,10 +181,10 @@ def poll_once(bot: Bot, offset: int) -> int:
 
 
 async def run():
-    if not C.COMMAND_BOT_TOKEN:
-        log.info("command bot disabled (no COMMAND_BOT_TOKEN)")
+    if not C.COMMANDS_TOKEN:
+        log.info("command bot disabled (no COMMAND_BOT_TOKEN and commands_on_main_bot: false)")
         return
-    bot = Bot(C.API, C.COMMAND_BOT_TOKEN, C.LOCAL_FILES)
+    bot = Bot(C.API, C.COMMANDS_TOKEN, C.LOCAL_FILES)
     try:
         me = await asyncio.to_thread(bot.call, "getMe")
         await asyncio.to_thread(bot.call, "setMyCommands", {"commands": [
