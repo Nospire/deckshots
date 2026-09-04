@@ -188,8 +188,35 @@ async def worker(lane: str, n: int):
         await asyncio.sleep(0.5 if busy else 5)
 
 
+def janitor_once():
+    """Remove inbox/work leftovers that no pending row references (crashes, dedupe edge cases)."""
+    now = time.time()
+    with store.connect() as con:
+        live = {r[0] for r in con.execute("SELECT id FROM shots WHERE status != 'sent'")}
+    removed = 0
+    for p in C.INBOX.glob("*"):
+        if p.is_file() and p.name.split("_", 1)[0] not in live and now - p.stat().st_mtime > 3600:
+            p.unlink(missing_ok=True)
+            removed += 1
+    for d in C.WORK.glob("*"):
+        if d.is_dir() and d.name not in live and now - d.stat().st_mtime > 3600:
+            shutil.rmtree(d, ignore_errors=True)
+            removed += 1
+    if removed:
+        log.info("janitor removed %d orphaned files/dirs", removed)
+
+
+async def janitor():
+    while True:
+        try:
+            await asyncio.to_thread(janitor_once)
+        except Exception as e:  # noqa: BLE001
+            log.warning("janitor error: %s", e)
+        await asyncio.sleep(1800)
+
+
 def start_all():
-    tasks = []
+    tasks = [asyncio.create_task(janitor())]
     for i in range(max(1, C.WORKERS_FAST)):
         tasks.append(asyncio.create_task(worker("fast", i + 1)))
     for i in range(max(1, C.WORKERS_SLOW)):
