@@ -119,13 +119,17 @@ def group_pending(device: str, appid: str, kind: str, now: float, limit: int):
 
 
 def claim(ids: list[str]) -> bool:
-    """Atomically move rows to 'processing'; False if another worker got there first."""
+    """Atomically move rows to 'processing'; False if another worker got (some of) them first.
+    BEGIN IMMEDIATE makes check+update one critical section, so a losing worker never touches
+    rows the winner already owns."""
+    marks = ",".join("?" * len(ids))
     with connect() as con:
-        marks = ",".join("?" * len(ids))
-        cur = con.execute(f"UPDATE shots SET status='processing' WHERE id IN ({marks}) AND status IN ('received','failed')", ids)
-        if cur.rowcount != len(ids):
-            con.execute(f"UPDATE shots SET status='received' WHERE id IN ({marks}) AND status='processing'", ids)
+        con.execute("BEGIN IMMEDIATE")
+        free = con.execute(f"SELECT COUNT(*) FROM shots WHERE id IN ({marks}) AND status IN ('received','failed')", ids).fetchone()[0]
+        if free != len(ids):
+            con.execute("ROLLBACK")
             return False
+        con.execute(f"UPDATE shots SET status='processing' WHERE id IN ({marks})", ids)
         return True
 
 
