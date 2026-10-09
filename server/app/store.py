@@ -37,6 +37,13 @@ CREATE TABLE IF NOT EXISTS device_state(
     queue_uploaded INTEGER DEFAULT 0,
     paused INTEGER DEFAULT 0
 );
+-- Geekcom Panel mode: decks resolved by the Panel (device_id -> Telegram chat), see panel.py
+CREATE TABLE IF NOT EXISTS panel_devices(
+    device TEXT PRIMARY KEY,
+    chat_id INTEGER NOT NULL,
+    label TEXT,
+    updated REAL
+);
 """
 
 MIGRATIONS = [
@@ -181,6 +188,18 @@ def set_paused(device: str, paused: bool):
     with connect() as con:
         con.execute("INSERT OR IGNORE INTO device_state(device) VALUES(?)", (device,))
         con.execute("UPDATE device_state SET paused=? WHERE device=?", (1 if paused else 0, device))
+
+
+def remember_panel_device(device: str, chat_id: int, label: str):
+    with connect() as con:
+        con.execute("INSERT INTO panel_devices(device, chat_id, label, updated) VALUES(?,?,?,?) "
+                    "ON CONFLICT(device) DO UPDATE SET chat_id=excluded.chat_id, label=excluded.label, updated=excluded.updated",
+                    (device, chat_id, label, time.time()))
+
+
+def panel_device(device: str):
+    with connect() as con:
+        return con.execute("SELECT * FROM panel_devices WHERE device=?", (device,)).fetchone()
 
 
 def device_state(device: str):

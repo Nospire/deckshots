@@ -13,7 +13,7 @@ from pathlib import Path
 import httpx
 
 from . import config as C
-from . import media, store
+from . import media, panel, store
 from .tg import Bot, TelegramError
 
 log = logging.getLogger("deckshots.worker")
@@ -89,7 +89,7 @@ def caption_for(dev: dict, rows: list, icon: str, extra: str = "") -> str:
 
 
 def deliver(rows: list) -> list[int]:
-    dev = C.BY_NAME.get(rows[0]["device"])
+    dev = C.BY_NAME.get(rows[0]["device"]) or panel.by_name(rows[0]["device"])
     if not dev or not dev.get("chat_id"):
         raise RuntimeError(f"device {rows[0]['device']} has no chat_id configured")
     chat, thread = dev["chat_id"], dev.get("thread_id")
@@ -160,9 +160,13 @@ def process_one(lane: str) -> bool:
         return True
     SERVED_AT[rows[0]["device"]] = now
     try:
+        size = sum(int(r["size"] or 0) for r in rows)
         msgs = deliver(rows)
         store.mark_sent(ids, msgs)
         cleanup(rows)
+        dev = panel.by_name(rows[0]["device"])
+        if dev:
+            panel.journal(dev, rows[0]["kind"], len(rows), size, True)
         log.info("[%s] sent %s (%s x%d, %s) -> %s", lane, rows[0]["device"], rows[0]["kind"], len(rows), rows[0]["filename"], msgs)
     except TelegramError as e:
         delay = store.mark_failed(ids, str(e), C.RETRY_MAX if e.code != 429 else 120)

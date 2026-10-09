@@ -18,6 +18,7 @@ from fastapi import APIRouter, FastAPI, Header, HTTPException, Request
 from fastapi.responses import FileResponse
 
 from . import bot as command_bot
+from . import panel
 from . import config as C
 from . import media, store, worker
 
@@ -45,7 +46,7 @@ router = APIRouter(prefix=C.PREFIX)
 
 
 def auth(token: str) -> dict:
-    dev = C.DEVICES.get(token)
+    dev = C.DEVICES.get(token) or panel.who(token)   # config.yml first, then the Geekcom Panel (panel.py)
     if not dev:
         raise HTTPException(401, "unknown device token")
     return dev
@@ -68,6 +69,9 @@ async def upload(
     x_taken_at: str = Header(""),
 ):
     dev = auth(x_device_token)
+    if dev.get("paused"):
+        # the person paused "Media from your Deck" in the Geekcom app: keep it on the deck, try after ping says resumed
+        raise HTTPException(423, "paused in the Geekcom app")
     if x_kind not in ("screenshot", "clip", "video"):
         raise HTTPException(400, "kind must be screenshot|clip|video")
     sha = x_sha256.lower()
@@ -125,7 +129,7 @@ async def ping(x_device_token: str = Header(...), x_host: str = Header(""), x_ag
     host = re.sub(r"[^\w.-]", "", x_host)[:40]
     store.touch_device(dev["name"], host, x_agent_version[:20], int(x_queue_new or 0), int(x_queue_uploaded or 0))
     st = store.device_state(dev["name"])
-    return {"ok": True, "paused": bool(st and st["paused"]), "server_version": VERSION}
+    return {"ok": True, "paused": bool(st and st["paused"]) or bool(dev.get("paused")), "server_version": VERSION}
 
 
 @router.post("/hello")
