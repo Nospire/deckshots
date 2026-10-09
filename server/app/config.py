@@ -30,6 +30,7 @@ PHOTO_LIMIT = 10 * 1024 * 1024
 SCREENSHOT_AS = CFG.get("screenshot_as", "photo")            # photo | document
 STORE_LOOKUP = bool(CFG.get("steam_store_lookup", True))
 RETRY_MAX = int(CFG.get("retry_max_seconds", 600))
+MIN_FREE = int(float(CFG.get("min_free_gb", 20)) * 1024 ** 3)   # below this /upload answers 507 and the deck keeps the file
 ADMIN_CHAT = CFG.get("admin_chat_id")
 DL_KEY = str(CFG.get("dl_key", ""))
 ALBUM_WAIT = int(CFG.get("album_wait_seconds", 45))          # screenshots of one game within this window go as an album

@@ -8,6 +8,7 @@ import hashlib
 import logging
 import os
 import re
+import shutil
 import time
 import urllib.parse
 import uuid
@@ -69,6 +70,11 @@ async def upload(
     x_taken_at: str = Header(""),
 ):
     dev = auth(x_device_token)
+    free = shutil.disk_usage(C.INBOX).free
+    need = int(request.headers.get("content-length") or 0)
+    if free < C.MIN_FREE or free - need < C.MIN_FREE // 2:
+        # disk guard: a Telegram outage must not let a backlog of clips fill the disk - the file stays on the deck
+        raise HTTPException(507, "server is low on disk space, retry later")
     if dev.get("paused"):
         # the person paused "Media from your Deck" in the Geekcom app: keep it on the deck, try after ping says resumed
         raise HTTPException(423, "paused in the Geekcom app")
